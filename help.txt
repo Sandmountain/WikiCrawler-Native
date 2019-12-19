@@ -1,0 +1,21 @@
+***
+React 
+***
+
+react-native run-android <-- start the android extension (need avd)   
+react-native log-android <-- for logs
+
+*** {Optimalt}
+Slå på debug js (i telefon)
+***
+http://localhost:8081/debugger-ui/
+
+
+***
+Starta emul eller kör från android studio
+***
+cd F:\Program\AndroidSDK\tools
+\.emulator -avd Nexus_5X_API_27
+
+settings i emulator :
+Ctrl + m
