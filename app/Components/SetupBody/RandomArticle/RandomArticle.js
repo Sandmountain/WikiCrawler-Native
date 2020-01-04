@@ -1,5 +1,14 @@
 import React, {Component} from 'react';
-import {Text, View, StyleSheet} from 'react-native';
+import {
+  Modal,
+  Alert,
+  Text,
+  View,
+  StyleSheet,
+  TouchableHighlight,
+  ScrollView,
+  Dimensions,
+} from 'react-native';
 import {withNavigation} from 'react-navigation';
 import {Card, Button, Divider, Input, Tooltip} from 'react-native-elements';
 import {FontAwesomeIcon} from '@fortawesome/react-native-fontawesome';
@@ -9,6 +18,7 @@ import {setQuery, setGoal, setSummary} from '../../../Actions/gameDataAction/';
 
 import axios from 'axios';
 import {TextField} from 'react-native-material-textfield';
+import HTML from 'react-native-render-html';
 import RNPickerSelect from 'react-native-picker-select';
 
 class RandomArticle extends Component {
@@ -19,6 +29,9 @@ class RandomArticle extends Component {
     StartArticleError: false,
     GoalArticleError: false,
     GoalArticleSummary: '',
+    GoalArticleSummaryHTML: '',
+    GoalAvatarURL: '',
+    modalVisible: false,
     gotSummary: false,
   };
 
@@ -94,7 +107,7 @@ class RandomArticle extends Component {
                   alignSelf: 'center',
                 }}>
                 <View style={{paddingBottom: 20}}>
-                  {this.state.StartArticleError !== true ? (
+                  {this.state.StartArticleFound !== true ? (
                     <View>
                       <Text>
                         <Text
@@ -127,7 +140,7 @@ class RandomArticle extends Component {
                     </View>
                   )}
                 </View>
-                {this.state.GoalArticleError !== true ? (
+                {this.state.GoalArticleFound !== true ? (
                   <View>
                     <Text>
                       <Text
@@ -174,40 +187,69 @@ class RandomArticle extends Component {
                     this.getArticleSetup(this.state.RandomArticleValue)
                   }></Button>
               </View>
-              {this.state.gotSummary !== false ? (
-                <View style={{paddingTop: 10}}>
-                  <Text style={{fontWeight: 'bold', paddingBottom: 5}}>
-                    SUMMERY OF {this.state.GoalArticle.toUpperCase()}
-                  </Text>
-                  {this.state.GoalArticleSummary !== '' ? (
-                    <Text>{this.state.GoalArticleSummary}</Text>
-                  ) : (
-                    //TODO: add spinner
-                    <Text> Spinner </Text>
-                  )}
-                </View>
-              ) : null}
             </View>
           ) : null}
+          <Modal
+            animationType="slide"
+            transparent={true}
+            visible={this.state.modalVisible}
+            onRequestClose={() => {
+              this.setState({modalVisible: !this.state.modalVisible});
+            }}>
+            <View
+              style={{
+                flex: 1,
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignSelf: 'center',
+              }}>
+              <View
+                style={{
+                  backgroundColor: 'white',
+                  padding: 5,
+                  elevation: 3,
+                  width: 350,
+                }}>
+                <Text style={{fontWeight: 'bold', paddingBottom: 5}}>
+                  SUMMERY OF {this.state.GoalArticle.toUpperCase()}
+                </Text>
+
+                <HTML
+                  html={this.state.GoalArticleSummaryHTML}
+                  imagesMaxWidth={Dimensions.get('window').width}
+                />
+
+                <View
+                  style={{
+                    flexDirection: 'row-reverse',
+                  }}>
+                  <Button
+                    type="clear"
+                    title="Start Game"
+                    onPress={() => {
+                      this.setState({modalVisible: !this.state.modalVisible});
+                      this.props.navigation.navigate('Main');
+                    }}></Button>
+                  <Button
+                    type="clear"
+                    titleStyle={{color: 'gray'}}
+                    title="Return"
+                    onPress={() => {
+                      this.setState({modalVisible: !this.state.modalVisible});
+                    }}></Button>
+                </View>
+              </View>
+            </View>
+          </Modal>
         </View>
-        {this.state.RandomArticleValue !== '' ? (
-          <View style={{paddingTop: 5}}>
-            {this.state.gotSummary !== false ? (
-              <Button
-                title="GO"
-                type="clear"
-                style={{margin: 2}}
-                onPress={() => this.props.navigation.navigate('Main')}></Button>
-            ) : (
-              <Button
-                title="VALIDATE ARTICLE"
-                type="clear"
-                style={{margin: 2}}
-                onPress={() => this.validateArticle()}></Button>
-            )}
-            {/* */}
-          </View>
-        ) : null}
+
+        <View style={{paddingTop: 5}}>
+          <Button
+            title="VALIDATE ARTICLE"
+            type="clear"
+            style={{margin: 2}}
+            onPress={() => this.validateArticle()}></Button>
+        </View>
       </View>
     );
   }
@@ -215,31 +257,41 @@ class RandomArticle extends Component {
   validateArticle = () => {
     //this.setState({GoalArticleError: true});
     //this.setState({StartArticleError: true});
+
     this.setState({gotSummary: false});
     this.setState({GoalArticleSummary: ''});
+    this.setState({GoalArticleSummaryHTML: ''});
+    this.setState({GoalAvatarURL: ''});
     this.articleQuery(this.state.GoalArticle, 'GoalArticle');
-    this.articleQuery(this.state.StartingArticle, 'StartArticle');
+    //this.articleQuery(this.state.StartingArticle, 'StartArticle');
   };
 
   async articleQuery(query, method) {
     axios
       .get(
-        `https://en.wikipedia.org/w/api.php?action=opensearch&format=json&search=${query}`,
+        //`https://en.wikipedia.org/w/api.php?action=opensearch&format=json&search=${query}`,
+        `https://en.wikipedia.org/api/rest_v1/page/summary/${query}`,
       )
       .then(res => {
-        if (res.data[2].length > 0) {
-          if (method === 'GoalArticle') {
-            res.data[2].forEach((element, index) => {
-              if (
-                !element.includes('may refer to:') &&
-                element !== '' &&
-                this.state.GoalArticleSummary === ''
-              ) {
-                this.setState({GoalArticleSummary: res.data[2][index]});
-                this.props.setSummary(res.data[2][index]);
-              }
-            });
+        console.log(res);
+        if (res.data.description !== '') {
+          let modalText = '';
+          if (
+            res.data.extract_html.includes('refer to') ||
+            res.data.extract_html.includes('refers to')
+          ) {
+            modalText =
+              res.data.extract_html + '<b>Do you wish to continue?</b>';
+          } else {
+            modalText = res.data.extract_html;
           }
+          this.setState({GoalArticleSummary: modalText});
+          this.setState({GoalArticleSummaryHTML: modalText});
+          this.setState({GoalAvatarURL: 'disc'});
+
+          this.props.setSummary(modalText);
+          //alert(res.data.description);
+          this.setState({modalVisible: true});
         } else {
           if (method === 'GoalArticle') {
             this.setState({GoalArticleError: true});

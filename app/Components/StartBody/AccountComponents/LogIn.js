@@ -40,6 +40,7 @@ class LogIn extends Component {
         </Item>
         <Item style={{paddingTop: 5}}></Item>
         <Button block>
+          {/*TODO: Add login function*/}
           <Text>LOGIN</Text>
         </Button>
         <View

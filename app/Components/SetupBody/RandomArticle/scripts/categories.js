@@ -144,7 +144,6 @@ export default {
     'Pity',
     'Powerful',
     'Pride',
-    'Querulous',
     'Rage',
     'Rapturous',
     'Relaxed',

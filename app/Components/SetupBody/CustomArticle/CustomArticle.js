@@ -1,5 +1,12 @@
 import React, {Component} from 'react';
-import {Text, View, StyleSheet} from 'react-native';
+import {
+  Modal,
+  Text,
+  View,
+  StyleSheet,
+  Dimensions,
+  Keyboard,
+} from 'react-native';
 import {Button, Divider, Input} from 'react-native-elements';
 
 import {HeaderBackButton, withNavigation} from 'react-navigation';
@@ -12,6 +19,8 @@ import {
   FilledTextField,
   OutlinedTextField,
 } from 'react-native-material-textfield';
+
+import HTML from 'react-native-render-html';
 
 const navigationOptions = ({navigation}) => ({
   headerLeft: <HeaderBackButton onPress={() => navigation.goBack(null)} />,
@@ -33,8 +42,10 @@ class CustomArticle extends Component {
     GoalArticleError: false,
     GoalArticleErrorHelp: '',
     GoalArticleSummary: '',
+    GoalArticleSummaryHTML: '',
     gotSummary: false,
     testStart: '',
+    modalVisible: false,
     StartingArticleTextColor: GRAY,
     GoalArticleTextColor: GRAY,
   };
@@ -49,62 +60,31 @@ class CustomArticle extends Component {
             Please write two articles in the fields below and validate to see if
             they are Wikipedia articles to start the game.
           </Text>
-          <Divider />
-          <View style={{alignItems: 'center', paddingBottom: 23}}>
-            <View style={{width: '90%'}}>
-              {
-                //TODO: check into if https://callstack.github.io/react-native-paper/text-input.html#selectionColor is better than elements
-                // or even https://nativebase.io/
-                // Recommend to use a "check box" instead of green text when verified article
-              }
-              <TextField
-                fontSize={12}
-                //onSubmitEditing={this.onSubmitStartingArticle}
-                baseColor={this.state.StartingArticleTextColor}
-                onBlur={this.onSubmitStartingArticle}
-                onFocus={this.resetError}
-                ref={this.Starting}
-                error={this.state.StartArticleErrorHelp}
-                label="Enter starting article: "></TextField>
-              <TextField
-                fontSize={12}
-                baseColor={this.state.GoalArticleTextColor}
-                onBlur={this.onSubmitGoalArticle}
-                onFocus={this.resetError}
-                ref={this.Goal}
-                error={this.state.GoalArticleErrorHelp}
-                label="Enter goal article: "></TextField>
-            </View>
-            {this.state.gotSummary !== false ? (
-              <View style={{paddingTop: 10}}>
-                <Button
-                  title="START GAME"
-                  buttonStyle={{height: 30}}
-                  onPress={() => {
-                    this.props.setQuery(this.state.StartingArticle);
-                    this.props.setGoal(this.state.GoalArticle);
-                    this.props.navigation.navigate('Main');
-                  }}></Button>
-              </View>
-            ) : null}
-          </View>
+          <Divider style={{marginBottom: 25}} />
 
-          {this.state.gotSummary !== false ? (
-            <View>
-              <Divider />
-              <View>
-                <Text style={{fontWeight: 'bold', paddingBottom: 5}}>
-                  SUMMERY OF {this.state.GoalArticle.toUpperCase()}
-                </Text>
-                {this.state.GoalArticleSummary !== '' ? (
-                  <Text>{this.state.GoalArticleSummary}</Text>
-                ) : (
-                  //TODO: INSERT SPINNER
-                  <Text> Spinner </Text>
-                )}
-              </View>
-            </View>
-          ) : null}
+          <Input
+            fontSize="24"
+            style={{fontSize: 5}}
+            containerStyle={{height: 25, marginBottom: 25}}
+            inputContainerStyle={{height: 25}}
+            onChangeText={text => {
+              this.setState({StartingArticle: text});
+            }}
+            placeholder="Enter starting article"
+            errorStyle={{color: 'red'}}
+            errorMessage={this.state.StartArticleError ? 'fail' : ''}></Input>
+
+          <Input
+            fontSize="24"
+            style={{fontSize: 5}}
+            containerStyle={{height: 25, marginBottom: 25}}
+            inputContainerStyle={{height: 25}}
+            placeholder="Enter goal article"
+            onChangeText={text => {
+              this.setState({GoalArticle: text});
+            }}
+            errorStyle={{color: 'red'}}
+            errorMessage={this.state.GoalArticleError ? 'fail' : ''}></Input>
         </View>
         {this.state.GoalArticle !== '' && this.state.StartingArticle !== '' ? (
           <View style={{paddingTop: 5}}>
@@ -113,11 +93,63 @@ class CustomArticle extends Component {
                 title="VALIDATE ARTICLE"
                 type="clear"
                 style={{margin: 2}}
-                onPress={() => this.validateArticle()}></Button>
+                onPress={() => {
+                  Keyboard.dismiss();
+                  this.validateArticle();
+                }}></Button>
             )}
-            {/* */}
           </View>
         ) : null}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={this.state.modalVisible}
+          onRequestClose={() => {
+            this.setState({modalVisible: !this.state.modalVisible});
+          }}>
+          <View
+            style={{
+              flex: 1,
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignSelf: 'center',
+            }}>
+            <View
+              style={{
+                backgroundColor: 'white',
+                padding: 5,
+                elevation: 3,
+                width: 350,
+              }}>
+              <Text style={{fontWeight: 'bold', paddingBottom: 5}}>
+                SUMMERY OF {this.state.GoalArticle.toUpperCase()}
+              </Text>
+              <HTML
+                html={this.state.GoalArticleSummaryHTML}
+                imagesMaxWidth={Dimensions.get('window').width}
+              />
+              <View
+                style={{
+                  flexDirection: 'row-reverse',
+                }}>
+                <Button
+                  type="clear"
+                  title="Start Game"
+                  onPress={() => {
+                    this.setState({modalVisible: !this.state.modalVisible});
+                    this.props.navigation.navigate('Main');
+                  }}></Button>
+                <Button
+                  type="clear"
+                  titleStyle={{color: 'gray'}}
+                  title="Return"
+                  onPress={() => {
+                    this.setState({modalVisible: !this.state.modalVisible});
+                  }}></Button>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </View>
     );
   }
@@ -156,6 +188,7 @@ class CustomArticle extends Component {
   validateArticle = () => {
     //this.setState({GoalArticleError: true});
     //this.setState({StartArticleError: true});
+
     if (this.state.GoalArticle === this.state.StartingArticle) {
       this.setState({GoalArticleErrorHelp: 'Choose two different articles'});
       this.setState({StartArticleErrorHelp: 'Choose two different articles'});
@@ -163,11 +196,51 @@ class CustomArticle extends Component {
       this.setState({gotSummary: false});
       this.setState({GoalArticleSummary: ''});
       this.articleQuery(this.state.GoalArticle, 'GoalArticle');
-      this.articleQuery(this.state.StartingArticle, 'StartArticle');
+      //this.articleQuery(this.state.StartingArticle, 'StartArticle');
     }
   };
 
   async articleQuery(query, method) {
+    axios
+      .get(
+        //`https://en.wikipedia.org/w/api.php?action=opensearch&format=json&search=${query}`,
+        `https://en.wikipedia.org/api/rest_v1/page/summary/${query}`,
+      )
+      .then(res => {
+        if (res.data.description !== '') {
+          let modalText = '';
+          if (
+            res.data.extract_html.includes('refer to') ||
+            res.data.extract_html.includes('refers to')
+          ) {
+            modalText =
+              res.data.extract_html + '<b>Do you wish to continue?</b>';
+          } else {
+            modalText = res.data.extract_html;
+          }
+          this.setState({GoalArticleSummary: modalText});
+          this.setState({GoalArticleSummaryHTML: modalText});
+
+          //this.props.setSummary(modalText);
+          //alert(res.data.description);
+          this.setState({modalVisible: true});
+        } else {
+          this.setState({GoalArticleSummaryHTML: 'ERROR OMG'});
+          this.setState({modalVisible: true});
+          if (method === 'GoalArticle') {
+            this.setState({GoalArticleError: true});
+          } else {
+            this.setState({StartArticleError: true});
+          }
+        }
+      })
+      .catch(err => {
+        //TODO: FIX NICER
+        this.setState({GoalArticleSummaryHTML: 'ERROR OMG'});
+        this.setState({modalVisible: true});
+      });
+
+    /*
     axios
       .get(
         `https://en.wikipedia.org/w/api.php?action=opensearch&format=json&search=${query}`,
@@ -203,6 +276,7 @@ class CustomArticle extends Component {
           }
         }
       });
+      */
   }
 }
 
@@ -223,7 +297,51 @@ const mapStateToProps = state => ({
   goal: state.gameData.goalArticle,
 });
 
-export default connect(
-  mapStateToProps,
-  {setQuery, setGoal},
-)(withNavigation(CustomArticle));
+export default connect(mapStateToProps, {setQuery, setGoal})(
+  withNavigation(CustomArticle),
+);
+
+/* Backuppuururu
+
+
+ <View style={{alignItems: 'center', paddingBottom: 23}}>
+            <View style={{width: '90%'}}>
+              {
+                //TODO: check into if https://callstack.github.io/react-native-paper/text-input.html#selectionColor is better than elements
+                // or even https://nativebase.io/
+                // Recommend to use a "check box" instead of green text when verified article
+              }
+              <TextField
+                fontSize={12}
+                //onSubmitEditing={this.onSubmitStartingArticle}
+                baseColor={this.state.StartingArticleTextColor}
+                onBlur={this.onSubmitStartingArticle}
+                onFocus={this.resetError}
+                ref={this.Starting}
+                error={this.state.StartArticleErrorHelp}
+                label="Enter starting article: "></TextField>
+              <TextField
+                fontSize={12}
+                baseColor={this.state.GoalArticleTextColor}
+                onBlur={this.onSubmitGoalArticle}
+                onFocus={this.resetError}
+                ref={this.Goal}
+                error={this.state.GoalArticleErrorHelp}
+                label="Enter goal article: "></TextField>
+            </View>
+            {this.state.gotSummary !== false ? (
+              <View style={{paddingTop: 10}}>
+                <Button
+                  title="START GAME"
+                  buttonStyle={{height: 30}}
+                  onPress={() => {
+                    this.props.setQuery(this.state.StartingArticle);
+                    this.props.setGoal(this.state.GoalArticle);
+                    this.props.navigation.navigate('Main');
+                  }}></Button>
+              </View>
+            ) : null}
+          </View>
+
+
+*/
