@@ -2,12 +2,16 @@
 React 
 ***
 
+<-->
 Install dependencies 
 npm install
 <-->
 
 react-native run-android <-- start the android extension (need avd)   
 react-native log-android <-- for logs
+
+( If errors: try uninstalling app on phone/emulator )
+
 
 *** {Optimalt}
 Slå på debug js (i telefon)
